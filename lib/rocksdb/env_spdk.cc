@@ -251,6 +251,11 @@ public:
 		return Status::OK();
 	}
 	virtual Status Append(const Slice &data) override;
+	virtual Status Append(const Slice& data,
+                        const DataVerificationInfo& /* verification_info */) override
+	{
+		return Append(data);
+	};
 	virtual Status Flush() override
 	{
 		return Status::OK();
