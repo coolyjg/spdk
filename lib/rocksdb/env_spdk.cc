@@ -635,8 +635,10 @@ fs_load_cb(__attribute__((unused)) void *ctx,
 	   struct spdk_filesystem *fs, int fserrno)
 {
 	if (fserrno == 0) {
+		SPDK_NOTICELOG("fs success\n");
 		g_fs = fs;
 	}
+	SPDK_NOTICELOG("set g_spdk_read = true");
 	g_spdk_ready = true;
 }
 
@@ -773,7 +775,7 @@ SpdkEnv::SpdkEnv(void* opts, Env *base_env, const std::string &dir, const std::s
 	g_bdev_name = mBdev;
 
 	// pthread_create(&mSpdkTid, NULL, &load_spdk, spdk_opts);
-	SPDK_NOTICELOG("initialize rocksdb without create pthread");
+	SPDK_NOTICELOG("initialize rocksdb without create pthread\n");
 	load_spdk_rocksdb_run(NULL);
 	while (!g_spdk_ready && !g_spdk_start_failure)
 		;
