@@ -730,6 +730,7 @@ static void*
 load_spdk(__attribute__((unused))void *arg)
 {
 	// struct spdk_app_opts *opts = (struct spdk_app_opts *)arg;
+	SPDK_NOTICELOG("start to load spdk then run rocksdb...");
 	load_spdk_rocksdb_run(NULL);
 	pthread_exit(NULL);
 }
