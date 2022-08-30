@@ -730,7 +730,7 @@ static void*
 load_spdk(__attribute__((unused))void *arg)
 {
 	// struct spdk_app_opts *opts = (struct spdk_app_opts *)arg;
-	SPDK_NOTICELOG("start to load spdk then run rocksdb...");
+	SPDK_NOTICELOG("start to load spdk then run rocksdb...\n");
 	load_spdk_rocksdb_run(NULL);
 	pthread_exit(NULL);
 }
@@ -772,7 +772,9 @@ SpdkEnv::SpdkEnv(void* opts, Env *base_env, const std::string &dir, const std::s
 	spdk_fs_set_cache_size(cache_size_in_mb);
 	g_bdev_name = mBdev;
 
-	pthread_create(&mSpdkTid, NULL, &load_spdk, spdk_opts);
+	// pthread_create(&mSpdkTid, NULL, &load_spdk, spdk_opts);
+	SPDK_NOTICELOG("initialize rocksdb without create pthread");
+	load_spdk_rocksdb_run(NULL);
 	while (!g_spdk_ready && !g_spdk_start_failure)
 		;
 	if (g_spdk_start_failure) {
