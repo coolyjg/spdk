@@ -1104,10 +1104,12 @@ __fs_create_file_done(void *arg, int fserrno)
 static void
 __fs_create_file(void *arg)
 {
+	SPDK_NOTICELOG("in _fs_create_file\n");
 	struct spdk_fs_request *req = arg;
 	struct spdk_fs_cb_args *args = &req->args;
 
 	SPDK_DEBUGLOG(blobfs, "file=%s\n", args->op.create.name);
+	SPDK_NOTICELOG("call back func is called\n");
 	spdk_fs_create_file_async(args->fs, args->op.create.name, __fs_create_file_done, req);
 }
 
@@ -1131,7 +1133,12 @@ spdk_fs_create_file(struct spdk_filesystem *fs, struct spdk_fs_thread_ctx *ctx, 
 	args->fs = fs;
 	args->op.create.name = name;
 	args->sem = &channel->sem;
+	SPDK_NOTICELOG("set callback func\n");
+	if(fs==NULL || req == NULL){
+		SPDK_NOTICELOG("fs is a NULL pointer\n");
+	}
 	fs->send_request(__fs_create_file, req);
+	SPDK_NOTICELOG("ready for sem_wait\n");
 	sem_wait(&channel->sem);
 	rc = args->rc;
 	free_fs_request(req);
@@ -1251,6 +1258,7 @@ __fs_open_file_done(void *arg, struct spdk_file *file, int bserrno)
 static void
 __fs_open_file(void *arg)
 {
+	SPDK_NOTICELOG("in __fs_open_file\n");
 	struct spdk_fs_request *req = arg;
 	struct spdk_fs_cb_args *args = &req->args;
 
@@ -1281,6 +1289,7 @@ spdk_fs_open_file(struct spdk_filesystem *fs, struct spdk_fs_thread_ctx *ctx,
 	args->op.open.name = name;
 	args->op.open.flags = flags;
 	args->sem = &channel->sem;
+	SPDK_NOTICELOG("OPEN_FILE: before call send_request\n");
 	fs->send_request(__fs_open_file, req);
 	sem_wait(&channel->sem);
 	rc = args->rc;
