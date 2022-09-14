@@ -638,7 +638,7 @@ fs_load_cb(__attribute__((unused)) void *ctx,
 		SPDK_NOTICELOG("fs success\n");
 		g_fs = fs;
 	}
-	SPDK_NOTICELOG("set g_spdk_read = true");
+	SPDK_NOTICELOG("set g_spdk_read = true\n");
 	g_spdk_ready = true;
 }
 
