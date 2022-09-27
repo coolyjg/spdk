@@ -388,7 +388,8 @@ public:
 	SpdkEnv(Env *base_env, const std::string &dir, const std::string &conf,
 		const std::string &bdev, uint64_t cache_size_in_mb);
 
-	SpdkEnv(void* opts, Env *base_env, const std::string &dir, const std::string &conf,
+	SpdkEnv(struct spdk_filesystem *fs, uint32_t lcore, 
+		Env *base_env, const std::string &dir, const std::string &conf,
 		const std::string &bdev, uint64_t cache_size_in_mb);
 
 	virtual ~SpdkEnv();
@@ -668,21 +669,21 @@ rocksdb_run(__attribute__((unused)) void *arg1)
 	spdk_fs_load(g_bs_dev, __send_request, fs_load_cb, NULL);
 }
 
-static void
-load_spdk_rocksdb_run(__attribute__((unused)) void *arg1)
-{
-	int rc;
-	rc = spdk_bdev_create_bs_dev_ext(g_bdev_name.c_str(), base_bdev_event_cb, NULL,
-					&g_bs_dev);
-	if (rc!=0){
-		printf("Could not create blob bdev\n");
-		exit(1);
-	}
-	g_lcore = spdk_env_get_first_core();
+// static void
+// load_spdk_rocksdb_run(__attribute__((unused)) void *arg1)
+// {
+// 	int rc;
+// 	rc = spdk_bdev_create_bs_dev_ext(g_bdev_name.c_str(), base_bdev_event_cb, NULL,
+// 					&g_bs_dev);
+// 	if (rc!=0){
+// 		printf("Could not create blob bdev\n");
+// 		exit(1);
+// 	}
+// 	g_lcore = spdk_env_get_first_core();
 
-	printf("using bdev %s\n", g_bdev_name.c_str());
-	spdk_fs_load(g_bs_dev, __send_request, fs_load_cb, NULL);
-}
+// 	printf("using bdev %s\n", g_bdev_name.c_str());
+// 	spdk_fs_load(g_bs_dev, __send_request, fs_load_cb, NULL);
+// }
 
 static void
 fs_unload_cb(__attribute__((unused)) void *ctx,
@@ -728,14 +729,14 @@ initialize_spdk(void *arg)
 
 }
 
-static void*
-load_spdk(__attribute__((unused))void *arg)
-{
-	// struct spdk_app_opts *opts = (struct spdk_app_opts *)arg;
-	SPDK_NOTICELOG("start to load spdk then run rocksdb...\n");
-	load_spdk_rocksdb_run(NULL);
-	pthread_exit(NULL);
-}
+// static void*
+// load_spdk(__attribute__((unused))void *arg)
+// {
+// 	// struct spdk_app_opts *opts = (struct spdk_app_opts *)arg;
+// 	SPDK_NOTICELOG("start to load spdk then run rocksdb...\n");
+// 	load_spdk_rocksdb_run(NULL);
+// 	pthread_exit(NULL);
+// }
 
 SpdkEnv::SpdkEnv(Env *base_env, const std::string &dir, const std::string &conf,
 		 const std::string &bdev, uint64_t cache_size_in_mb)
@@ -763,28 +764,14 @@ SpdkEnv::SpdkEnv(Env *base_env, const std::string &dir, const std::string &conf,
 	SpdkInitializeThread();
 }
 
-SpdkEnv::SpdkEnv(void* opts, Env *base_env, const std::string &dir, const std::string &conf,
+SpdkEnv::SpdkEnv(struct spdk_filesystem *fs, uint32_t lcore,
+		Env *base_env, const std::string &dir, const std::string &conf,
 		const std::string &bdev, uint64_t cache_size_in_mb)
 	: EnvWrapper(base_env), mDirectory(dir), mConfig(conf), mBdev(bdev)
 {
-	struct spdk_app_opts *spdk_opts = (struct spdk_app_opts *)opts;
-	spdk_opts->shutdown_cb = rocksdb_shutdown;
-	spdk_opts->tpoint_group_mask = "0x80";
-
-	spdk_fs_set_cache_size(cache_size_in_mb);
-	g_bdev_name = mBdev;
-
-	// pthread_create(&mSpdkTid, NULL, &load_spdk, spdk_opts);
-	SPDK_NOTICELOG("initialize rocksdb without create pthread\n");
-	load_spdk_rocksdb_run(NULL);
-	while (!g_spdk_ready && !g_spdk_start_failure)
-		;
-	if (g_spdk_start_failure) {
-		delete spdk_opts;
-		throw SpdkAppStartException("spdk_app_start() unable to start rocksdb_run()");
-	}
-
-	SpdkInitializeThread();
+	g_lcore = lcore;
+	g_spdk_ready = true;
+	g_fs = fs;
 }
 
 SpdkEnv::~SpdkEnv()
@@ -832,22 +819,24 @@ Env *NewSpdkEnv(Env *base_env, const std::string &dir, const std::string &conf,
 	}
 }
 
-Env *UseSpdkEnv(void* opts, Env *base_env, const std::string &dir, const std::string &conf,
+Env* UseSpdkEnv(void * fs_t, uint32_t lcore, 
+		Env* base_env, const std::string &dir, const std::string &conf,
 		const std::string &bdev, uint64_t cache_size_in_mb)
 {
-	try{
-		SpdkEnv* spdk_env = new SpdkEnv(opts, base_env, dir, conf, bdev, cache_size_in_mb);
-		if (g_fs !=NULL){
+	try {
+		struct spdk_filesystem *fs = (struct spdk_filesystem *)fs_t;
+		SpdkEnv *spdk_env = new SpdkEnv(fs, lcore, base_env, dir, conf, bdev, cache_size_in_mb);
+		if (g_fs != NULL) {
 			return spdk_env;
 		} else {
 			delete spdk_env;
 			return NULL;
 		}
-	} catch (SpdkAppStartException &e){
-		SPDK_ERRLOG("LoadSpdkEnv: exception caught: %s", e.what());
+	} catch (SpdkAppStartException &e) {
+		SPDK_ERRLOG("NewSpdkEnv: exception caught: %s", e.what());
 		return NULL;
 	} catch (...) {
-		SPDK_ERRLOG("LoadSpdkEnv: default exception caught");
+		SPDK_ERRLOG("NewSpdkEnv: default exception caught");
 		return NULL;
 	}
 }
