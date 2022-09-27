@@ -28,6 +28,7 @@ uint32_t g_lcore = 0;
 std::string g_bdev_name;
 volatile bool g_spdk_ready = false;
 volatile bool g_spdk_start_failure = false;
+const unsigned long INVALID_THREAD_NUM = 4294967295;
 
 void SpdkInitializeThread(void);
 
@@ -380,6 +381,7 @@ class SpdkEnv : public EnvWrapper
 {
 private:
 	pthread_t mSpdkTid;
+	bool init_by_fs;
 	std::string mDirectory;
 	std::string mConfig;
 	std::string mBdev;
@@ -754,6 +756,7 @@ SpdkEnv::SpdkEnv(Env *base_env, const std::string &dir, const std::string &conf,
 	g_bdev_name = mBdev;
 
 	pthread_create(&mSpdkTid, NULL, &initialize_spdk, opts);
+	init_by_fs = false;
 	while (!g_spdk_ready && !g_spdk_start_failure)
 		;
 	if (g_spdk_start_failure) {
@@ -769,9 +772,12 @@ SpdkEnv::SpdkEnv(struct spdk_filesystem *fs, uint32_t lcore,
 		const std::string &bdev, uint64_t cache_size_in_mb)
 	: EnvWrapper(base_env), mDirectory(dir), mConfig(conf), mBdev(bdev)
 {
+	spdk_fs_set_cache_size(cache_size_in_mb);
 	g_lcore = lcore;
 	g_spdk_ready = true;
 	g_fs = fs;
+	mSpdkTid = INVALID_THREAD_NUM;
+	init_by_fs = true;
 }
 
 SpdkEnv::~SpdkEnv()
@@ -795,8 +801,13 @@ SpdkEnv::~SpdkEnv()
 		}
 	}
 
-	spdk_app_start_shutdown();
-	pthread_join(mSpdkTid, NULL);
+	if (!init_by_fs){
+		spdk_app_start_shutdown();
+	}
+	
+	if(mSpdkTid != INVALID_THREAD_NUM){
+		pthread_join(mSpdkTid, NULL);
+	}
 }
 
 Env *NewSpdkEnv(Env *base_env, const std::string &dir, const std::string &conf,
