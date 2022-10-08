@@ -480,7 +480,6 @@ spdk_event_call(struct spdk_event *event)
 	struct spdk_reactor *reactor;
 	struct spdk_reactor *local_reactor = NULL;
 
-	SPDK_NOTICELOG("spdk_event_call is called\n");
 
 	uint32_t current_core = spdk_env_get_current_core();
 
@@ -489,13 +488,11 @@ spdk_event_call(struct spdk_event *event)
 	assert(reactor != NULL);
 	assert(reactor->events != NULL);
 
-	SPDK_NOTICELOG("before enqueue\n");
 	rc = spdk_ring_enqueue(reactor->events, (void **)&event, 1, NULL);
 	if (rc != 1) {
 		assert(false);
 	}
 
-	SPDK_NOTICELOG("spdk_enqueue sucess\n");
 
 	if (current_core != SPDK_ENV_LCORE_ID_ANY) {
 		local_reactor = spdk_reactor_get(current_core);
@@ -509,9 +506,7 @@ spdk_event_call(struct spdk_event *event)
 	    spdk_unlikely(spdk_cpuset_get_cpu(&local_reactor->notify_cpuset, event->lcore))) {
 		uint64_t notify = 1;
 
-		SPDK_NOTICELOG("ready for write: lcore = %d\n", event->lcore);
 		rc = write(reactor->events_fd, &notify, sizeof(notify));
-		SPDK_NOTICELOG("write notify success\n");
 		if (rc < 0) {
 			SPDK_ERRLOG("failed to notify event queue: %s.\n", spdk_strerror(errno));
 		}
