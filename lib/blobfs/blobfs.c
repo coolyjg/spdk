@@ -1258,7 +1258,6 @@ __fs_open_file_done(void *arg, struct spdk_file *file, int bserrno)
 static void
 __fs_open_file(void *arg)
 {
-	SPDK_NOTICELOG("in __fs_open_file\n");
 	struct spdk_fs_request *req = arg;
 	struct spdk_fs_cb_args *args = &req->args;
 
@@ -1289,7 +1288,6 @@ spdk_fs_open_file(struct spdk_filesystem *fs, struct spdk_fs_thread_ctx *ctx,
 	args->op.open.name = name;
 	args->op.open.flags = flags;
 	args->sem = &channel->sem;
-	SPDK_NOTICELOG("OPEN_FILE: before call send_request\n");
 	fs->send_request(__fs_open_file, req);
 	sem_wait(&channel->sem);
 	rc = args->rc;
