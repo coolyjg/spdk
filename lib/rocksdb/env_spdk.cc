@@ -638,10 +638,8 @@ fs_load_cb(__attribute__((unused)) void *ctx,
 	   struct spdk_filesystem *fs, int fserrno)
 {
 	if (fserrno == 0) {
-		SPDK_NOTICELOG("fs success\n");
 		g_fs = fs;
 	}
-	SPDK_NOTICELOG("set g_spdk_read = true\n");
 	g_spdk_ready = true;
 }
 
@@ -670,22 +668,6 @@ rocksdb_run(__attribute__((unused)) void *arg1)
 	printf("using bdev %s\n", g_bdev_name.c_str());
 	spdk_fs_load(g_bs_dev, __send_request, fs_load_cb, NULL);
 }
-
-// static void
-// load_spdk_rocksdb_run(__attribute__((unused)) void *arg1)
-// {
-// 	int rc;
-// 	rc = spdk_bdev_create_bs_dev_ext(g_bdev_name.c_str(), base_bdev_event_cb, NULL,
-// 					&g_bs_dev);
-// 	if (rc!=0){
-// 		printf("Could not create blob bdev\n");
-// 		exit(1);
-// 	}
-// 	g_lcore = spdk_env_get_first_core();
-
-// 	printf("using bdev %s\n", g_bdev_name.c_str());
-// 	spdk_fs_load(g_bs_dev, __send_request, fs_load_cb, NULL);
-// }
 
 static void
 fs_unload_cb(__attribute__((unused)) void *ctx,
@@ -730,15 +712,6 @@ initialize_spdk(void *arg)
 	pthread_exit(NULL);
 
 }
-
-// static void*
-// load_spdk(__attribute__((unused))void *arg)
-// {
-// 	// struct spdk_app_opts *opts = (struct spdk_app_opts *)arg;
-// 	SPDK_NOTICELOG("start to load spdk then run rocksdb...\n");
-// 	load_spdk_rocksdb_run(NULL);
-// 	pthread_exit(NULL);
-// }
 
 SpdkEnv::SpdkEnv(Env *base_env, const std::string &dir, const std::string &conf,
 		 const std::string &bdev, uint64_t cache_size_in_mb)
